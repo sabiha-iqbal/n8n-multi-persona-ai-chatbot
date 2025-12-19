@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Persona Chat Pro</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            /* Solid, deep professional color */
+            background-color: #0f172a; 
+        }
+
+        /* Decorative Background Elements */
+        .decor-1 {
+            position: absolute;
+            width: 500px;
+            height: 500px;
+            background: radial-gradient(circle, rgba(99, 102, 241, 0.15) 0%, rgba(99, 102, 241, 0) 70%);
+            top: -100px;
+            left: -100px;
+            z-index: -1;
+        }
+
+        .decor-2 {
+            position: absolute;
+            width: 600px;
+            height: 600px;
+            background: radial-gradient(circle, rgba(168, 85, 247, 0.1) 0%, rgba(168, 85, 247, 0) 70%);
+            bottom: -150px;
+            right: -100px;
+            z-index: -1;
+        }
+
+        /* Premium Glassmorphism */
+        .glass-container {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(25px);
+            -webkit-backdrop-filter: blur(25px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 0 40px rgba(0, 0, 0, 0.5), inset 0 0 1px rgba(255, 255, 255, 0.2);
+        }
+
+        .chat-area::-webkit-scrollbar { width: 4px; }
+        .chat-area::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 10px; }
+
+        .message-bubble {
+            animation: slideIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+            opacity: 0;
+            transform: translateY(20px);
+        }
+
+        @keyframes slideIn {
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .typing-dot {
+            width: 5px;
+            height: 5px;
+            background: #818cf8;
+            border-radius: 50%;
+            animation: typing 1.4s infinite ease-in-out;
+        }
+        .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+        .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+        @keyframes typing {
+            0%, 100% { transform: scale(1); opacity: 0.4; }
+            50% { transform: scale(1.5); opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="decor-1"></div>
+    <div class="decor-2"></div>
+
+    <div class="w-full max-w-3xl h-[85vh] mx-4 flex flex-col glass-container rounded-[2rem] overflow-hidden">
+        
+        <div class="px-8 py-6 flex items-center justify-between border-b border-white/10 bg-white/5">
+            <div class="flex items-center space-x-5">
+                <div class="relative">
+                    <div class="w-14 h-14 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center text-white shadow-2xl ring-1 ring-white/20">
+                        <span id="avatar-initial" class="text-2xl font-bold">D</span>
+                    </div>
+                    <div class="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 border-2 border-[#1e293b] rounded-full"></div>
+                </div>
+                <div>
+                    <h2 class="font-semibold text-white text-lg tracking-tight" id="current-persona-name">David</h2>
+                    <div class="flex items-center space-x-2">
+                        <span class="text-[10px] font-bold text-indigo-400 uppercase tracking-[0.2em]">Neural Link Active</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-black/20 p-1 rounded-xl border border-white/5 flex items-center">
+                <select id="profile-select" class="bg-transparent text-white text-xs font-medium px-4 py-2 outline-none cursor-pointer appearance-none hover:text-indigo-300 transition-colors">
+                    <option class="bg-slate-900" value="David">David (Philosopher)</option>
+                    <option class="bg-slate-900" value="Ana">Ana (Influencer)</option>
+                    <option class="bg-slate-900" value="Maria">Maria (Customer Service)</option>
+                    <option class="bg-slate-900" value="John">John (Programmer)</option>
+                    <option class="bg-slate-900" value="Bob">Bob (Fitness Coach)</option>
+                </select>
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-white/40 mr-2 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                </svg>
+            </div>
+        </div>
+
+        <div id="chat-window" class="flex-grow p-10 overflow-y-auto space-y-8 chat-area bg-gradient-to-b from-transparent to-black/10">
+            </div>
+
+        <div id="loading-indicator" class="hidden px-10 py-4 flex items-center space-x-4">
+            <div class="flex space-x-1.5">
+                <div class="typing-dot"></div>
+                <div class="typing-dot"></div>
+                <div class="typing-dot"></div>
+            </div>
+            <span class="text-[10px] font-bold text-indigo-300 uppercase tracking-widest" id="thinking-message"></span>
+        </div>
+
+        <div class="px-8 pb-8">
+            <div class="bg-white/10 p-1.5 rounded-2xl border border-white/10 shadow-2xl backdrop-blur-md">
+                <form id="chat-form" class="flex items-center">
+                    <input type="text" id="user-input" autocomplete="off" placeholder="Message the AI..." required
+                        class="flex-grow bg-transparent border-none px-6 py-3 text-white placeholder-white/30 focus:outline-none focus:ring-0 text-sm font-light">
+                    
+                    <button type="submit" id="send-button"
+                        class="bg-indigo-600 hover:bg-indigo-500 text-white p-3 rounded-xl transition-all shadow-lg active:scale-90 group">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition" viewBox="0 0 20 20" fill="currentColor">
+                            <path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 00.183.607A.997.997 0 003 18h14c.427 0 .809-.22.981-.55.174-.33.167-.714-.02-1.036l-7-14z" />
+                        </svg>
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const WEBHOOK_URL = 'http://localhost:5678/webhook/persona-chat'; 
+        
+        const chatWindow = document.getElementById('chat-window');
+        const chatForm = document.getElementById('chat-form');
+        const userInput = document.getElementById('user-input');
+        const sendButton = document.getElementById('send-button');
+        const loadingIndicator = document.getElementById('loading-indicator');
+        const profileSelect = document.getElementById('profile-select');
+        const currentPersonaName = document.getElementById('current-persona-name');
+        const avatarInitial = document.getElementById('avatar-initial');
+        const thinkingMessage = document.getElementById('thinking-message');
+
+        function appendMessage(text, sender) {
+            const wrapper = document.createElement('div');
+            wrapper.className = `flex ${sender === 'user' ? 'justify-end' : 'justify-start'} message-bubble`;
+            
+            const isUser = sender === 'user';
+            
+            wrapper.innerHTML = `
+                <div class="flex flex-col ${isUser ? 'items-end' : 'items-start'} max-w-[80%]">
+                    <div class="px-6 py-4 rounded-2xl text-[13px] leading-relaxed tracking-wide shadow-xl ${
+                        isUser 
+                        ? 'bg-indigo-600 text-white rounded-tr-none ring-1 ring-white/10' 
+                        : 'bg-white/5 text-white/90 rounded-tl-none border border-white/10 backdrop-blur-md'
+                    }">
+                        ${text.replace(/\n/g, '<br>')}
+                    </div>
+                    <span class="mt-2 px-1 text-[8px] font-black uppercase tracking-[0.2em] text-white/30">
+                        ${isUser ? 'Authorized User' : profileSelect.value}
+                    </span>
+                </div>
+            `;
+            
+            chatWindow.appendChild(wrapper);
+            chatWindow.scrollTo({ top: chatWindow.scrollHeight, behavior: 'smooth' });
+        }
+
+        profileSelect.addEventListener('change', (e) => {
+            const name = e.target.value;
+            currentPersonaName.textContent = name;
+            avatarInitial.textContent = name.charAt(0);
+            chatWindow.innerHTML = '';
+            appendMessage(`Connection established. Interface initialized for ${name}.`, 'ai');
+        });
+
+        appendMessage(`Connection established. Interface initialized for ${profileSelect.value}.`, 'ai');
+
+        chatForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const prompt = userInput.value.trim();
+            if (!prompt) return;
+
+            appendMessage(prompt, 'user');
+            userInput.value = '';
+            userInput.disabled = true;
+            sendButton.disabled = true;
+            
+            thinkingMessage.textContent = `Analyzing Input`;
+            loadingIndicator.classList.remove('hidden');
+
+            try {
+                const response = await fetch(WEBHOOK_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text: prompt, profile: profileSelect.value }),
+                });
+
+                const data = await response.json();
+                if (data.finalResponse) appendMessage(data.finalResponse, 'ai');
+            } catch (err) {
+                appendMessage("CRITICAL ERROR: Unable to synchronize with neural core.", 'ai');
+            } finally {
+                userInput.disabled = false;
+                sendButton.disabled = false;
+                loadingIndicator.classList.add('hidden');
+                userInput.focus();
+            }
+        });
+    </script>
+</body>
+</html>

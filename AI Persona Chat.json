@@ -1,0 +1,153 @@
+{
+  "name": "AI Persona Chat - Clean",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "persona-chat",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        -496,
+        0
+      ],
+      "id": "webhook-trigger-id"
+    },
+    {
+      "parameters": {
+        "functionCode": "// This Code Node determines the AI's persona and extracts the user prompt.\n\nconst webhookBody = $json.body;\nconst profileName = webhookBody.profile || webhookBody.body?.profile || 'Default Bot';\nconst prompt = webhookBody.text || webhookBody.body?.text || '';\n\nlet systemInstruction = \"You are a friendly, concise, and helpful general-purpose chatbot. Respond directly and politely to the user's input and don't talk extra, answer only what is asked or is related to the question/chat. Never talk extra, just like a real human would do, and use simple english words\";\n\nswitch (profileName.toLowerCase()) {\n  case 'ana':\n    systemInstruction = \"You are Ana, a cheerful and energetic social media influencer who loves travel and uses emojis often. Your tone is excited and encouraging.\";\n    break;\n  case 'maria':\n    systemInstruction = \"You are Maria, a professional, detailed, and slightly formal customer service representative. Always address concerns clearly and politely.\";\n    break;\n  case 'john':\n    systemInstruction = \"You are John, a laid-back, humorous, and slightly sarcastic programmer. Use technical jargon occasionally and give short, witty replies.\";\n    break;\n  case 'bob':\n    systemInstruction = \"You are Bob, a motivational fitness coach. Respond with encouraging, workout-focused replies.\";\n    break;\n  case 'david':\n    systemInstruction = \"You are David, a calm person. Use professional language.\";\n    break;\n  default:\n    break;\n}\n\nreturn [{\n  json: {\n    prompt: prompt,\n    profileName: profileName,\n    systemInstruction: systemInstruction\n  }\n}];"
+      },
+      "name": "Set Persona Instruction",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        -272,
+        0
+      ],
+      "id": "persona-logic-id"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "key",
+              "value": ""
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={   \"contents\": [     {       \"role\": \"user\",       \"parts\": [         {           \"text\": \"{{$json.prompt}}\"         }       ]     }   ],   \"systemInstruction\": {     \"parts\": [       {         \"text\": \"{{$json.systemInstruction}}\"       }     ]   } }",
+        "options": {}
+      },
+      "name": "Call Gemini API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [
+        -48,
+        0
+      ],
+      "id": "api-call-id"
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "finalResponse",
+              "value": "={{$json.candidates[0].content.parts[0].text}}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Extract Chat Response",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [
+        176,
+        0
+      ],
+      "id": "data-extraction-id"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"finalResponse\": \"{{$json.finalResponse}}\"\n}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              }
+            ]
+          }
+        }
+      },
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        384,
+        0
+      ],
+      "id": "webhook-response-id"
+    }
+  ],
+  "connections": {
+    "Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Set Persona Instruction",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Persona Instruction": {
+      "main": [
+        [
+          {
+            "node": "Call Gemini API",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call Gemini API": {
+      "main": [
+        [
+          {
+            "node": "Extract Chat Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Chat Response": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}
