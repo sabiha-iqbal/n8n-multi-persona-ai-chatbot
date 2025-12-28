@@ -1,4 +1,4 @@
-# n8n-multi-persona-ai-chatbot
+# n8n Multi Persona AI-chatbot
 An n8n-based multi-persona AI chatbot powered by Google Gemini, enabling customizable conversational agents through automated workflows.
 
 ## Overview
